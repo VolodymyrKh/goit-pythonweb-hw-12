@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Confirm your email</title>
+</head>
+<body style="font-family: Arial, sans-serif; color: #222;">
+  <h2>Hello, {{ username }}!</h2>
+  <p>Thank you for registering in Contacts API.</p>
+  <p>Please confirm your email address by clicking the link below:</p>
+  <p>
+    <a href="{{ host }}api/auth/confirmed_email/{{ token }}"
+       style="display: inline-block; padding: 10px 20px; background: #2563eb; color: #fff; text-decoration: none; border-radius: 4px;">
+      Confirm email
+    </a>
+  </p>
+  <p style="color: #666; font-size: 12px;">If you did not register, just ignore this email.</p>
+</body>
+</html>
