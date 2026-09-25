@@ -37,3 +37,33 @@ class ContactResponse(ContactBase):
     updated_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class UserCreate(BaseModel):
+    username: str = Field(min_length=3, max_length=50, pattern=r"^[A-Za-z0-9_.-]+$")
+    email: EmailStr = Field(max_length=100)
+    password: str = Field(min_length=6, max_length=128)
+
+
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    email: EmailStr
+    avatar: str | None = None
+    confirmed: bool
+    created_at: datetime | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+class RequestEmail(BaseModel):
+    email: EmailStr
+
+
+class MessageResponse(BaseModel):
+    message: str
