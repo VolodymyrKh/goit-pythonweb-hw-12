@@ -4,7 +4,7 @@ from typing import Sequence
 from sqlalchemy import and_, extract, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.database.models import Contact
+from src.database.models import Contact, User
 from src.schemas import ContactCreate, ContactUpdate
 
 
@@ -14,13 +14,14 @@ class ContactRepository:
 
     async def get_contacts(
         self,
+        user: User,
         skip: int,
         limit: int,
         first_name: str | None = None,
         last_name: str | None = None,
         email: str | None = None,
     ) -> Sequence[Contact]:
-        stmt = select(Contact)
+        stmt = select(Contact).where(Contact.user_id == user.id)
         if first_name:
             stmt = stmt.where(Contact.first_name.ilike(f"%{first_name}%"))
         if last_name:
@@ -31,25 +32,31 @@ class ContactRepository:
         result = await self.db.execute(stmt)
         return result.scalars().all()
 
-    async def get_contact_by_id(self, contact_id: int) -> Contact | None:
-        return await self.db.get(Contact, contact_id)
-
-    async def get_contact_by_email(self, email: str) -> Contact | None:
-        stmt = select(Contact).where(Contact.email == email)
+    async def get_contact_by_id(self, contact_id: int, user: User) -> Contact | None:
+        stmt = select(Contact).where(
+            Contact.id == contact_id, Contact.user_id == user.id
+        )
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def create_contact(self, body: ContactCreate) -> Contact:
-        contact = Contact(**body.model_dump())
+    async def get_contact_by_email(self, email: str, user: User) -> Contact | None:
+        stmt = select(Contact).where(
+            Contact.email == email, Contact.user_id == user.id
+        )
+        result = await self.db.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def create_contact(self, body: ContactCreate, user: User) -> Contact:
+        contact = Contact(**body.model_dump(), user_id=user.id)
         self.db.add(contact)
         await self.db.commit()
         await self.db.refresh(contact)
         return contact
 
     async def update_contact(
-        self, contact_id: int, body: ContactUpdate
+        self, contact_id: int, body: ContactUpdate, user: User
     ) -> Contact | None:
-        contact = await self.get_contact_by_id(contact_id)
+        contact = await self.get_contact_by_id(contact_id, user)
         if contact is None:
             return None
         for key, value in body.model_dump(exclude_unset=True).items():
@@ -58,8 +65,8 @@ class ContactRepository:
         await self.db.refresh(contact)
         return contact
 
-    async def remove_contact(self, contact_id: int) -> Contact | None:
-        contact = await self.get_contact_by_id(contact_id)
+    async def remove_contact(self, contact_id: int, user: User) -> Contact | None:
+        contact = await self.get_contact_by_id(contact_id, user)
         if contact is None:
             return None
         await self.db.delete(contact)
@@ -67,7 +74,7 @@ class ContactRepository:
         return contact
 
     async def get_upcoming_birthdays(
-        self, days: int, today: date | None = None
+        self, days: int, user: User, today: date | None = None
     ) -> Sequence[Contact]:
         """Contacts whose birthday (month/day) falls within the next `days` days,
         today included: [today, today + days - 1].
@@ -95,7 +102,7 @@ class ContactRepository:
                     )
                 )
 
-        stmt = select(Contact).where(or_(*conditions))
+        stmt = select(Contact).where(Contact.user_id == user.id, or_(*conditions))
         result = await self.db.execute(stmt)
         contacts = result.scalars().all()
 
