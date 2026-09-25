@@ -8,6 +8,38 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Local SMTP server that catches all outgoing mail; web UI at http://localhost:8025
+  mailpit:
+    image: axllent/mailpit
+    container_name: contacts_mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+  app:
+    build: .
+    container_name: contacts_app
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # Inside the Docker network services are reached by their names
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      MAIL_SERVER: ${DOCKER_MAIL_SERVER:-mailpit}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
 
 volumes:
   postgres_data:
