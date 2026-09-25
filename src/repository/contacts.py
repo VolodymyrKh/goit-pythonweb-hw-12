@@ -69,14 +69,15 @@ class ContactRepository:
     async def get_upcoming_birthdays(
         self, days: int, today: date | None = None
     ) -> Sequence[Contact]:
-        """Contacts whose birthday (month/day) falls within [today, today + days].
+        """Contacts whose birthday (month/day) falls within the next `days` days,
+        today included: [today, today + days - 1].
 
         Compares month and day only, so the year wrap (late December -> early
         January) is handled naturally. Contacts born on Feb 29 are treated as
         having a birthday on Feb 28 in non-leap years.
         """
         today = today or date.today()
-        dates = [today + timedelta(days=i) for i in range(days + 1)]
+        dates = [today + timedelta(days=i) for i in range(days)]
 
         conditions = []
         for d in dates:
