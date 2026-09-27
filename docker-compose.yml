@@ -14,6 +14,22 @@ services:
       timeout: 5s
       retries: 10
 
+  redis:
+    image: redis:8-alpine
+    container_name: contacts_redis
+    restart: unless-stopped
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}"]
+    ports:
+      # Bound to localhost only: reachable for local development, not from the network
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" --no-auth-warning ping | grep PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+
   # Local SMTP server that catches all outgoing mail; web UI at http://localhost:8025
   mailpit:
     image: axllent/mailpit
@@ -32,11 +48,15 @@ services:
       # Inside the Docker network services are reached by their names
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
       MAIL_SERVER: ${DOCKER_MAIL_SERVER:-mailpit}
     ports:
       - "8000:8000"
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       mailpit:
         condition: service_started
