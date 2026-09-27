@@ -9,3 +9,11 @@ __pycache__/
 # IDE
 .vscode/
 .idea/
+
+# Docs build output
+docs/_build/
+
+# Coverage
+.coverage
+htmlcov/
+.pytest_cache/
