@@ -3,7 +3,7 @@
 import uvicorn
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from slowapi.errors import RateLimitExceeded
 
 from src.api import auth, contacts, users, utils
@@ -34,6 +34,12 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
         status_code=status.HTTP_429_TOO_MANY_REQUESTS,
         content={"detail": "Too many requests. Try again later."},
     )
+
+
+@app.api_route("/", methods=["GET", "HEAD"], include_in_schema=False)
+async def root():
+    """Redirect the site root to the interactive API documentation."""
+    return RedirectResponse(url="/docs")
 
 
 app.include_router(utils.router, prefix="/api")
