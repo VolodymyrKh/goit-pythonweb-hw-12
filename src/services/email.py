@@ -1,3 +1,9 @@
+"""Sending emails (email confirmation and password reset) with fastapi-mail.
+
+The functions are meant to run as FastAPI background tasks, so SMTP errors are
+logged instead of being raised to the client.
+"""
+
 import logging
 from pathlib import Path
 
@@ -25,19 +31,49 @@ conf = ConnectionConfig(
 )
 
 
-async def send_verification_email(email: EmailStr, username: str, host: str) -> None:
-    """Send a message with an email confirmation link. Runs as a background task."""
+async def _send(email: EmailStr, subject: str, template: str, body: dict) -> None:
     try:
         message = MessageSchema(
-            subject="Confirm your email",
+            subject=subject,
             recipients=[email],
-            template_body={
-                "host": host,
-                "username": username,
-                "token": create_email_token(email),
-            },
+            template_body=body,
             subtype=MessageType.html,
         )
-        await FastMail(conf).send_message(message, template_name="verify_email.html")
+        await FastMail(conf).send_message(message, template_name=template)
     except ConnectionErrors as err:
-        logger.error("Failed to send verification email to %s: %s", email, err)
+        logger.error("Failed to send '%s' email to %s: %s", subject, email, err)
+
+
+async def send_verification_email(email: EmailStr, username: str, host: str) -> None:
+    """Send a message with an email confirmation link.
+
+    Args:
+        email: Recipient address.
+        username: Name used in the greeting.
+        host: Base URL of the API, used to build the link.
+    """
+    await _send(
+        email,
+        "Confirm your email",
+        "verify_email.html",
+        {"host": host, "username": username, "token": create_email_token(email)},
+    )
+
+
+async def send_password_reset_email(
+    email: EmailStr, username: str, host: str, token: str
+) -> None:
+    """Send a message with a password reset link.
+
+    Args:
+        email: Recipient address.
+        username: Name used in the greeting.
+        host: Base URL of the API, used to build the link.
+        token: Single-use password reset token.
+    """
+    await _send(
+        email,
+        "Reset your password",
+        "reset_password_email.html",
+        {"host": host, "username": username, "token": token},
+    )
