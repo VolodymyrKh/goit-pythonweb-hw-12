@@ -289,12 +289,15 @@ async def test_request_password_reset_unknown_email_gives_same_answer(client, ma
 
 async def test_reset_password_form_page(client, create_user):
     user = await create_user("alice")
+    token = create_reset_password_token(user)
 
-    response = await client.get(f"/api/auth/reset_password/{create_reset_password_token(user)}")
+    response = await client.get(f"/api/auth/reset_password/{token}")
 
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
     assert "new password" in response.text.lower()
+    assert f'data-token="{token}"' in response.text
+    assert 'data-action="http://test/api/auth/reset_password"' in response.text
 
 
 async def test_reset_password_form_invalid_token_returns_400(client):
