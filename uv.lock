@@ -384,8 +384,8 @@ wheels = [
 ]
 
 [[package]]
-name = "goit-pythonweb-hw-08"
-version = "0.1.0"
+name = "goit-pythonweb-hw-10"
+version = "0.2.0"
 source = { virtual = "." }
 dependencies = [
     { name = "alembic" },

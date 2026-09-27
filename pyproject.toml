@@ -1,7 +1,7 @@
 [project]
-name = "goit-pythonweb-hw-08"
-version = "0.1.0"
-description = "REST API for storing and managing contacts (FastAPI + SQLAlchemy + PostgreSQL)"
+name = "goit-pythonweb-hw-10"
+version = "0.2.0"
+description = "REST API for managing contacts with JWT authentication (FastAPI + SQLAlchemy + PostgreSQL)"
 authors = [
     { name = "Volodymyr", email = "volodymyr_kh@hotmail.com" }
 ]
