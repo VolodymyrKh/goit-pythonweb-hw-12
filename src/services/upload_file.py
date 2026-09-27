@@ -1,3 +1,5 @@
+"""Uploading user avatars to Cloudinary."""
+
 import cloudinary
 import cloudinary.uploader
 import cloudinary.utils
@@ -5,6 +7,14 @@ from fastapi import UploadFile
 
 
 class UploadFileService:
+    """Configures Cloudinary and uploads files.
+
+    Args:
+        cloud_name: Cloudinary cloud name.
+        api_key: Cloudinary API key.
+        api_secret: Cloudinary API secret.
+    """
+
     def __init__(self, cloud_name: str, api_key: str, api_secret: str):
         cloudinary.config(
             cloud_name=cloud_name,

@@ -1,3 +1,5 @@
+"""Database access for contacts. Every query is limited to the owner's contacts."""
+
 from datetime import date, timedelta
 from typing import Sequence
 
@@ -9,6 +11,12 @@ from src.schemas import ContactCreate, ContactUpdate
 
 
 class ContactRepository:
+    """CRUD operations on the ``contacts`` table.
+
+    Args:
+        session: Async SQLAlchemy session.
+    """
+
     def __init__(self, session: AsyncSession):
         self.db = session
 
@@ -21,6 +29,21 @@ class ContactRepository:
         last_name: str | None = None,
         email: str | None = None,
     ) -> Sequence[Contact]:
+        """Return the user's contacts, optionally filtered, with pagination.
+
+        Filters match a substring case-insensitively.
+
+        Args:
+            user: Owner of the contacts.
+            skip: Number of contacts to skip.
+            limit: Maximum number of contacts to return.
+            first_name: Filter by first name.
+            last_name: Filter by last name.
+            email: Filter by email.
+
+        Returns:
+            Contacts ordered by id.
+        """
         stmt = select(Contact).where(Contact.user_id == user.id)
         if first_name:
             stmt = stmt.where(Contact.first_name.ilike(f"%{first_name}%"))
@@ -33,6 +56,7 @@ class ContactRepository:
         return result.scalars().all()
 
     async def get_contact_by_id(self, contact_id: int, user: User) -> Contact | None:
+        """Return the user's contact with the given id, or ``None``."""
         stmt = select(Contact).where(
             Contact.id == contact_id, Contact.user_id == user.id
         )
@@ -40,6 +64,7 @@ class ContactRepository:
         return result.scalar_one_or_none()
 
     async def get_contact_by_email(self, email: str, user: User) -> Contact | None:
+        """Return the user's contact with the given email, or ``None``."""
         stmt = select(Contact).where(
             Contact.email == email, Contact.user_id == user.id
         )
@@ -47,6 +72,15 @@ class ContactRepository:
         return result.scalar_one_or_none()
 
     async def create_contact(self, body: ContactCreate, user: User) -> Contact:
+        """Create a contact owned by the user.
+
+        Args:
+            body: Contact data.
+            user: Owner of the new contact.
+
+        Returns:
+            The created contact.
+        """
         contact = Contact(**body.model_dump(), user_id=user.id)
         self.db.add(contact)
         await self.db.commit()
@@ -56,6 +90,16 @@ class ContactRepository:
     async def update_contact(
         self, contact_id: int, body: ContactUpdate, user: User
     ) -> Contact | None:
+        """Update only the fields that were provided in the request.
+
+        Args:
+            contact_id: Id of the contact.
+            body: New values.
+            user: Owner of the contact.
+
+        Returns:
+            The updated contact or ``None`` if the user has no such contact.
+        """
         contact = await self.get_contact_by_id(contact_id, user)
         if contact is None:
             return None
@@ -66,6 +110,11 @@ class ContactRepository:
         return contact
 
     async def remove_contact(self, contact_id: int, user: User) -> Contact | None:
+        """Delete the user's contact.
+
+        Returns:
+            The deleted contact or ``None`` if the user has no such contact.
+        """
         contact = await self.get_contact_by_id(contact_id, user)
         if contact is None:
             return None
@@ -117,4 +166,5 @@ class ContactRepository:
 
 
 def _is_leap(year: int) -> bool:
+    """Return ``True`` for leap years."""
     return year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)

@@ -1,3 +1,5 @@
+"""Contact routes. All of them require an access token and work only with the caller's contacts."""
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -20,6 +22,7 @@ async def read_contacts(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """Return the user's contacts with optional search and pagination."""
     contact_service = ContactService(db)
     return await contact_service.get_contacts(
         user, skip, limit, first_name, last_name, email
@@ -32,6 +35,7 @@ async def read_upcoming_birthdays(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """Return contacts whose birthday falls within the next ``days`` days (7 by default)."""
     contact_service = ContactService(db)
     return await contact_service.get_upcoming_birthdays(user, days)
 
@@ -42,6 +46,7 @@ async def read_contact(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """Return one contact. 404 if the user has no such contact."""
     contact_service = ContactService(db)
     contact = await contact_service.get_contact(contact_id, user)
     if contact is None:
@@ -57,6 +62,7 @@ async def create_contact(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """Create a contact. 409 if the user already has a contact with this email."""
     contact_service = ContactService(db)
     return await contact_service.create_contact(body, user)
 
@@ -68,6 +74,7 @@ async def update_contact(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """Update the provided fields of a contact. 404 if not found, 409 on email conflict."""
     contact_service = ContactService(db)
     contact = await contact_service.update_contact(contact_id, body, user)
     if contact is None:
@@ -83,6 +90,7 @@ async def remove_contact(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """Delete a contact and return it. 404 if the user has no such contact."""
     contact_service = ContactService(db)
     contact = await contact_service.remove_contact(contact_id, user)
     if contact is None:

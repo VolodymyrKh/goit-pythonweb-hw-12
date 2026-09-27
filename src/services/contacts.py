@@ -1,3 +1,5 @@
+"""Business logic for contacts."""
+
 from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,10 +10,21 @@ from src.schemas import ContactCreate, ContactUpdate
 
 
 class ContactService:
+    """Contact operations on top of :class:`~src.repository.contacts.ContactRepository`.
+
+    Args:
+        db: Async SQLAlchemy session.
+    """
+
     def __init__(self, db: AsyncSession):
         self.repository = ContactRepository(db)
 
     async def create_contact(self, body: ContactCreate, user: User):
+        """Create a contact for the user.
+
+        Raises:
+            HTTPException: 409 if the user already has a contact with this email.
+        """
         await self._ensure_email_is_free(body.email, user)
         try:
             return await self.repository.create_contact(body, user)
@@ -28,14 +41,24 @@ class ContactService:
         last_name: str | None = None,
         email: str | None = None,
     ):
+        """Return the user's contacts with optional search and pagination."""
         return await self.repository.get_contacts(
             user, skip, limit, first_name, last_name, email
         )
 
     async def get_contact(self, contact_id: int, user: User):
+        """Return the user's contact or ``None``."""
         return await self.repository.get_contact_by_id(contact_id, user)
 
     async def update_contact(self, contact_id: int, body: ContactUpdate, user: User):
+        """Update the user's contact.
+
+        Returns:
+            The updated contact or ``None`` if it does not exist.
+
+        Raises:
+            HTTPException: 409 if the new email is used by another contact of the user.
+        """
         if body.email is not None:
             await self._ensure_email_is_free(body.email, user, exclude_id=contact_id)
         try:
@@ -45,9 +68,11 @@ class ContactService:
             raise _email_conflict()
 
     async def remove_contact(self, contact_id: int, user: User):
+        """Delete the user's contact and return it, or ``None``."""
         return await self.repository.remove_contact(contact_id, user)
 
     async def get_upcoming_birthdays(self, user: User, days: int = 7):
+        """Return the user's contacts with birthdays in the next ``days`` days."""
         return await self.repository.get_upcoming_birthdays(days, user)
 
     async def _ensure_email_is_free(
